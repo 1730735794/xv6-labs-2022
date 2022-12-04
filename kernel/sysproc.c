@@ -74,7 +74,25 @@ sys_sleep(void)
 int
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
+  int start_address,n;
+  argint(0, &start_address);
+  argint(1, &n);
+  struct proc *pr = myproc();
+  pagetable_t pagetable = pr->pagetable;
+  uint64 p;
+  argaddr(2, &p);
+  unsigned int res = 0;
+  for(int i = 0; i < n; i++){
+     pte_t *pte = walk(pagetable, start_address + i * PGSIZE, 0);
+    // If the user enters a very large n
+    // it will cause `start_address+i*PGSIZE` to be an illegal address
+    // case `pte` is 0
+    if(pte && (*pte & PTE_A)){
+      *pte -= PTE_A;
+      res |= 1 << i;
+    }
+  }
+  copyout(pagetable, p, (char *)&res, 4);
   return 0;
 }
 #endif

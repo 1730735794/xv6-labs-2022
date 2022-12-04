@@ -90,6 +90,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
 
   for(int level = 2; level > 0; level--) {
     pte_t *pte = &pagetable[PX(level, va)];
+    *pte |= PTE_A;
     if(*pte & PTE_V) {
       pagetable = (pagetable_t)PTE2PA(*pte);
     } else {
@@ -97,9 +98,35 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
         return 0;
       memset(pagetable, 0, PGSIZE);
       *pte = PA2PTE(pagetable) | PTE_V;
+      *pte |= PTE_A;
     }
   }
   return &pagetable[PX(0, va)];
+}
+
+void vmprint(pagetable_t pagetable){
+  printf("page table %p\n", pagetable);
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if(!(pte & PTE_V)){
+      continue;
+    }
+    pagetable_t pagetable1 = (pagetable_t)PTE2PA(pte);
+    printf("..%d: pte %p pa %p\n", i, pte, pagetable1);
+    for(int j = 0; j < 512; j++){
+      pte_t pte1 = pagetable1[j];
+      if(!(pte1 & PTE_V))
+        continue;
+      pagetable_t pagetable2 = (pagetable_t)PTE2PA(pte1);
+      printf(".. ..%d: pte %p pa %p\n", j, pte1, pagetable2);
+      for(int k = 0; k < 512; k++){
+        pte_t pte2 = pagetable2[k];
+        if(!(pte2 & PTE_V))
+          continue;
+        printf(".. .. ..%d: pte %p pa %p\n", k, pte2, (pagetable_t)PTE2PA(pte2));
+      }
+    }
+  }
 }
 
 // Look up a virtual address, return the physical address,
